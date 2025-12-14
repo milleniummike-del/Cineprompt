@@ -103,6 +103,7 @@ export interface StoryboardProject {
   id: string;
   title: string;
   originalIdea: string;
+  treatment?: string; // Detailed film treatment
   actors: Actor[];
   costumes: Costume[];
   props: Prop[];

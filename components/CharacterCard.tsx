@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Character, Actor, Costume } from '../types';
 import CopyButton from './CopyButton';
+import ImageUploader from './ImageUploader';
 
 const CharacterCard: React.FC<{
   character: Character;
@@ -113,38 +114,39 @@ const CharacterCard: React.FC<{
       onDragStart={handleDragStart}
       className={`bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-lg p-3 flex flex-col gap-2 cursor-grab active:cursor-grabbing transition-all shadow-sm group ${showPrompts ? 'ring-1 ring-indigo-500/30' : ''}`}
     >
-      <div className="flex items-center justify-between">
-        <div 
-            className="flex items-center gap-3 overflow-hidden flex-grow cursor-pointer"
-            onClick={() => setShowPrompts(!showPrompts)}
-        >
-            <div className="w-8 h-8 rounded bg-gradient-to-br from-indigo-900 to-purple-900 flex items-center justify-center text-indigo-200 font-bold text-xs border border-indigo-500/20 shrink-0">
-            {character.name.charAt(0)}
+      <div className="flex items-start gap-3">
+        <ImageUploader id={character.id} className="w-12 h-12" />
+
+        <div className="flex-grow min-w-0">
+            <div className="flex items-center justify-between">
+                <div 
+                    className="flex-grow cursor-pointer"
+                    onClick={() => setShowPrompts(!showPrompts)}
+                >
+                    <div className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                        {character.name}
+                        <svg className={`w-3 h-3 text-zinc-600 transition-transform ${showPrompts ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                    <div className="text-[10px] text-zinc-500 flex flex-wrap items-center gap-1">
+                        <span>{actor?.name || 'Unknown'}</span>
+                        <span>•</span>
+                        <span>{costume?.name || 'No Costume'}</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                    <CopyButton 
+                        onCopy={getCharacterJson} 
+                        title="Copy Character JSON with View Prompts" 
+                        className="text-zinc-600 hover:text-indigo-400 p-1 rounded hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
+                    />
+                    <button onClick={() => setIsEditing(true)} className="text-zinc-600 hover:text-indigo-400 p-1 rounded hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>
+                    <button onClick={() => onDelete(character.id)} className="text-zinc-600 hover:text-red-400 p-1 rounded hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
             </div>
-            <div className="overflow-hidden flex-grow">
-            <div className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                {character.name}
-                <svg className={`w-3 h-3 text-zinc-600 transition-transform ${showPrompts ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-            <div className="text-[10px] text-zinc-500 flex flex-wrap items-center gap-1">
-                <span>{actor?.name || 'Unknown'}</span>
-                <span>•</span>
-                <span>{costume?.name || 'No Costume'}</span>
-            </div>
-            </div>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-            <CopyButton 
-                onCopy={getCharacterJson} 
-                title="Copy Character JSON with View Prompts" 
-                className="text-zinc-600 hover:text-indigo-400 p-1 rounded hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
-            />
-            <button onClick={() => setIsEditing(true)} className="text-zinc-600 hover:text-indigo-400 p-1 rounded hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-            </button>
-            <button onClick={() => onDelete(character.id)} className="text-zinc-600 hover:text-red-400 p-1 rounded hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
         </div>
       </div>
 

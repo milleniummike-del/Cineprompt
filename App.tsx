@@ -12,6 +12,21 @@ import CastManager from './components/CastManager';
 import ShotCard from './components/ShotCard';
 import LoadProjectModal from './components/LoadProjectModal';
 
+const TREATMENT_TEMPLATE = `🎯 Logline:
+A one-sentence hook that captures your story's essence
+
+📋 Synopsis:
+A brief overview of your plot (usually 1-2 paragraphs)
+
+👥 Character Descriptions:
+Focused profiles of key players
+
+🏆 Story Arc:
+The beginning, middle, and end of your narrative
+
+🎭 Tone and Style:
+Visual and Emotional Blueprint`;
+
 export default function App() {
   const [idea, setIdea] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -19,6 +34,7 @@ export default function App() {
     id: `proj-${Date.now()}`,
     title: 'Untitled Project',
     originalIdea: '',
+    treatment: '',
     actors: [],
     costumes: [],
     props: [],
@@ -29,6 +45,16 @@ export default function App() {
   });
   const [showLoadModal, setShowLoadModal] = useState(false);
   const [savedProjects, setSavedProjects] = useState<StoryboardProject[]>([]);
+  
+  // Settings for Generation
+  const [assetCounts, setAssetCounts] = useState({
+    actors: 5,
+    characters: 5,
+    scenes: 5,
+    props: 5
+  });
+  const [showSettings, setShowSettings] = useState(false);
+  const [showTreatment, setShowTreatment] = useState(false);
   
   // New Shot Generation State
   const [newShotPrompt, setNewShotPrompt] = useState('');
@@ -71,6 +97,19 @@ export default function App() {
     }
   };
 
+  const handleRenameSavedProject = (id: string, newTitle: string) => {
+    const newSavedList = savedProjects.map(p => 
+      p.id === id ? { ...p, title: newTitle, lastModified: Date.now() } : p
+    );
+    setSavedProjects(newSavedList);
+    localStorage.setItem('cineprompt_saves', JSON.stringify(newSavedList));
+    
+    // If currently loaded project is the one being renamed, update it too to reflect change immediately
+    if (project.id === id) {
+        setProject(prev => ({ ...prev, title: newTitle }));
+    }
+  };
+
   const migrateProjectData = (p: any): StoryboardProject => {
     // Basic structural migration
     const actors = p.actors || (p as any).characters || [];
@@ -99,6 +138,7 @@ export default function App() {
 
     return {
       ...p,
+      treatment: p.treatment || '',
       actors,
       costumes,
       props,
@@ -113,6 +153,10 @@ export default function App() {
     setProject(migratedProject);
     setIdea(p.originalIdea);
     setShowLoadModal(false);
+    // Auto-open treatment if it exists and idea is empty, or just to show it
+    if (migratedProject.treatment && migratedProject.treatment.length > 20) {
+        setShowTreatment(true);
+    }
   };
 
   const handleDeleteSavedProject = (id: string) => {
@@ -167,14 +211,30 @@ export default function App() {
   };
 
   const handleGenerate = async () => {
-    if (!idea.trim()) return;
+    // Allow generation if either idea or treatment is present
+    const hasIdea = idea.trim().length > 0;
+    const hasTreatment = project.treatment && project.treatment.trim().length > 0;
+    
+    if (!hasIdea && !hasTreatment) return;
+
     setIsLoading(true);
     try {
-      // Step 1: Generate Assets
-      const assets = await generateProjectAssets(idea);
+      // Construct a comprehensive prompt using both idea and treatment
+      let generationContext = idea;
+      if (hasTreatment) {
+        generationContext += `\n\nFILM TREATMENT:\n${project.treatment}`;
+      }
+
+      // Step 1: Generate Assets & Treatment
+      const assets = await generateProjectAssets(generationContext, {
+        actorCount: assetCounts.actors,
+        characterCount: assetCounts.characters,
+        propCount: assetCounts.props,
+        sceneCount: assetCounts.scenes
+      });
       
       // Step 2: Generate Storyboard using those assets
-      const generatedShots = await generateStoryboard(idea, assets.actors, assets.costumes, assets.characters, assets.props, assets.scenes);
+      const generatedShots = await generateStoryboard(generationContext, assets.actors, assets.costumes, assets.characters, assets.props, assets.scenes);
       
       // Step 3: Auto-tag the text
       const taggedShots = generatedShots.map(shot => ({
@@ -190,6 +250,7 @@ export default function App() {
         ...prev,
         title: prev.title === 'Untitled Project' ? 'New Storyboard' : prev.title,
         originalIdea: idea,
+        treatment: assets.treatment, // Update with generated treatment
         actors: assets.actors,
         costumes: assets.costumes,
         props: assets.props,
@@ -198,6 +259,8 @@ export default function App() {
         shots: taggedShots,
         lastModified: Date.now()
       }));
+      
+      setShowTreatment(true);
 
     } catch (error) {
       console.error("Error generating storyboard:", error);
@@ -299,6 +362,14 @@ export default function App() {
     setProject(prev => ({ ...prev, characters: newChars }));
   };
 
+  const toggleTreatment = () => {
+      setShowTreatment(!showTreatment);
+      // Pre-fill if empty when opening
+      if (!showTreatment && (!project.treatment || project.treatment.trim() === '')) {
+          setProject(p => ({...p, treatment: TREATMENT_TEMPLATE}));
+      }
+  };
+
   return (
     <div className="min-h-screen bg-[#0f0f10] text-zinc-200 font-sans selection:bg-indigo-500/30">
       
@@ -308,6 +379,7 @@ export default function App() {
         projects={savedProjects}
         onLoad={handleLoadProject}
         onDelete={handleDeleteSavedProject}
+        onRename={handleRenameSavedProject}
       />
 
       {/* Navbar */}
@@ -390,10 +462,86 @@ export default function App() {
                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-zinc-300 placeholder-zinc-600 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 focus:outline-none transition-all resize-none text-base leading-relaxed h-24"
                placeholder="Describe your movie scene idea here (e.g., 'A cyberpunk detective walking through a rainy neon market seeking a rogue android')..."
              />
+
+             {/* Treatment Toggle & Editor */}
+             <div className="mt-3">
+                <button 
+                  onClick={toggleTreatment} 
+                  className="text-xs font-bold text-zinc-400 hover:text-white flex items-center gap-1 transition-colors uppercase tracking-wider"
+                >
+                   <svg className={`w-3 h-3 transition-transform ${showTreatment ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
+                   {showTreatment ? 'Hide Film Treatment' : 'Add Full Film Treatment'}
+                </button>
+                
+                {showTreatment && (
+                  <div className="mt-3 animate-in fade-in slide-in-from-top-2">
+                      <div className="relative">
+                         <div className="absolute top-3 right-3 text-[10px] text-zinc-600 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
+                            Logline • Synopsis • Characters • Arc • Tone
+                         </div>
+                         <textarea
+                            value={project.treatment}
+                            onChange={(e) => setProject(p => ({...p, treatment: e.target.value}))}
+                            className="w-full bg-zinc-950/80 border border-zinc-700/50 rounded-xl p-4 text-zinc-300 placeholder-zinc-700 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 focus:outline-none transition-all text-sm leading-relaxed font-mono custom-scrollbar"
+                            placeholder="Detailed treatment..."
+                            rows={12}
+                         />
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mt-1 ml-1">Providing a detailed treatment helps the AI generate more consistent characters and scenes.</p>
+                  </div>
+                )}
+             </div>
+             
+             {/* Settings Panel */}
+             <div className="mt-4 border-t border-zinc-800 pt-3">
+               <button 
+                 onClick={() => setShowSettings(!showSettings)}
+                 className="text-xs flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 transition-colors font-medium mb-3"
+               >
+                  <svg className={`w-3.5 h-3.5 transition-transform ${showSettings ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                  Generation Settings
+               </button>
+               
+               {showSettings && (
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-black/20 p-4 rounded-lg animate-in slide-in-from-top-2">
+                   {[
+                     { label: 'Actors', key: 'actors' },
+                     { label: 'Characters', key: 'characters' },
+                     { label: 'Scenes', key: 'scenes' },
+                     { label: 'Props', key: 'props' },
+                   ].map(({ label, key }) => (
+                     <div key={key}>
+                       <label className="text-[10px] uppercase font-bold text-zinc-500 block mb-1.5">{label}</label>
+                       <div className="flex items-center">
+                         <input
+                           type="number"
+                           min="1"
+                           max="20"
+                           value={(assetCounts as any)[key]}
+                           onChange={(e) => setAssetCounts(prev => ({ ...prev, [key]: Math.max(1, Math.min(20, parseInt(e.target.value) || 1)) }))}
+                           className="bg-zinc-950 border border-zinc-700 rounded-l px-3 py-1.5 text-sm w-full focus:outline-none focus:border-indigo-500 text-center"
+                         />
+                         <div className="flex flex-col border-y border-r border-zinc-700 rounded-r bg-zinc-900">
+                           <button 
+                              onClick={() => setAssetCounts(prev => ({ ...prev, [key]: Math.min(20, (prev as any)[key] + 1) }))}
+                              className="px-2 hover:bg-zinc-800 text-[8px] text-zinc-400 border-b border-zinc-700 h-1/2 flex items-center"
+                           >▲</button>
+                           <button 
+                              onClick={() => setAssetCounts(prev => ({ ...prev, [key]: Math.max(1, (prev as any)[key] - 1) }))}
+                              className="px-2 hover:bg-zinc-800 text-[8px] text-zinc-400 h-1/2 flex items-center"
+                           >▼</button>
+                         </div>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
+             </div>
+
              <div className="mt-4 flex justify-end">
                <button
                  onClick={handleGenerate}
-                 disabled={isLoading || !idea.trim()}
+                 disabled={isLoading || (!idea.trim() && !project.treatment?.trim())}
                  className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 shadow-lg shadow-indigo-900/20"
                >
                  {isLoading ? (

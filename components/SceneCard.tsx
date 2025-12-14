@@ -1,6 +1,7 @@
 import React from 'react';
 import { Scene } from '../types';
 import CopyButton from './CopyButton';
+import ImageUploader from './ImageUploader';
 
 const SceneCard: React.FC<{
   scene: Scene;
@@ -36,35 +37,39 @@ const SceneCard: React.FC<{
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
       </div>
 
-      <div className="flex-grow space-y-2">
-        <div className="flex justify-between items-start pr-6">
-           <div className="flex-1 mr-2">
-             <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Scene / Location Name</label>
-             <input 
-               value={scene.name}
-               onChange={(e) => onUpdate({...scene, name: e.target.value})}
-               placeholder="e.g. Abandoned Warehouse"
-               className="bg-transparent text-sm font-bold text-white focus:outline-none border-b border-zinc-800 focus:border-orange-500 placeholder-zinc-700 w-full py-1"
+      <div className="flex gap-3">
+        <ImageUploader id={scene.id} />
+
+        <div className="flex-grow space-y-2 min-w-0">
+          <div className="flex justify-between items-start pr-6">
+             <div className="flex-1 mr-2 min-w-0">
+               <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Scene / Location Name</label>
+               <input 
+                 value={scene.name}
+                 onChange={(e) => onUpdate({...scene, name: e.target.value})}
+                 placeholder="e.g. Abandoned Warehouse"
+                 className="bg-transparent text-sm font-bold text-white focus:outline-none border-b border-zinc-800 focus:border-orange-500 placeholder-zinc-700 w-full py-1"
+               />
+             </div>
+          </div>
+          <div className="relative">
+             <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Description (No People)</label>
+             <textarea 
+                value={scene.description}
+                onChange={(e) => {
+                  onUpdate({...scene, description: e.target.value});
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                onFocus={(e) => {
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                placeholder="e.g. Dusty concrete floors, shafts of light through broken windows..."
+                className="w-full bg-zinc-950/50 text-xs text-zinc-400 rounded p-2 border border-zinc-800 focus:border-orange-500/50 focus:outline-none resize-none min-h-[80px] overflow-hidden"
+                style={{ height: 'auto' }}
              />
-           </div>
-        </div>
-        <div className="relative">
-           <label className="text-[10px] text-zinc-500 uppercase font-bold block mb-1">Description (No People)</label>
-           <textarea 
-              value={scene.description}
-              onChange={(e) => {
-                onUpdate({...scene, description: e.target.value});
-                e.target.style.height = 'auto';
-                e.target.style.height = e.target.scrollHeight + 'px';
-              }}
-              onFocus={(e) => {
-                e.target.style.height = 'auto';
-                e.target.style.height = e.target.scrollHeight + 'px';
-              }}
-              placeholder="e.g. Dusty concrete floors, shafts of light through broken windows..."
-              className="w-full bg-zinc-950/50 text-xs text-zinc-400 rounded p-2 border border-zinc-800 focus:border-orange-500/50 focus:outline-none resize-none min-h-[96px] overflow-hidden"
-              style={{ height: 'auto' }}
-           />
+          </div>
         </div>
       </div>
       

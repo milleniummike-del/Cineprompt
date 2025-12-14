@@ -115,22 +115,45 @@ const safeJsonParse = (text: string, fallback: any) => {
   }
 };
 
-export const generateProjectAssets = async (idea: string): Promise<{
+export const generateProjectAssets = async (
+  idea: string,
+  options: {
+    actorCount?: number;
+    characterCount?: number;
+    propCount?: number;
+    sceneCount?: number;
+  } = {}
+): Promise<{
   actors: Actor[],
   costumes: Costume[],
   props: Prop[],
   scenes: Scene[],
-  characters: Character[]
+  characters: Character[],
+  treatment: string
 }> => {
+  const {
+    actorCount = 5,
+    characterCount = 5,
+    propCount = 5,
+    sceneCount = 5
+  } = options;
+
   const ai = getAiClient();
   const prompt = `
-    Analyze the following movie idea and create a creative cast of characters, actors, costumes, props, and scenes.
+    Analyze the following movie idea and create a detailed Film Treatment, along with a creative cast of characters, actors, costumes, props, and scenes.
     
-    1. Create 5 distinct Actors with names and detailed physical descriptions. You MUST include: age, specific ethnicity, hair color/style, eye color, height/body type, and distinct facial features.
-    2. Create 5 distinct Costumes with names and visual descriptions.
-    3. Create 5 significant Props (items, weapons, vehicles, or artifacts) with names and visual details.
-    4. Create 5 distinct Scene (Location/Environment) with name and visual description. This should describe the place WITHOUT people.
-    5. Create 5 Characters (Roles) by combining an Actor and a Costume. Give the Character a distinct Role Name (e.g. "The Hero", "The Villain", "The Detective").
+    1. Create a Film Treatment including:
+       - Logline: A one-sentence hook.
+       - Synopsis: A brief overview (1-2 paragraphs).
+       - Character Profiles: Focused profiles of key players.
+       - Story Arc: The beginning, middle, and end.
+       - Tone and Style: Visual and emotional blueprint.
+
+    2. Create ${actorCount} distinct Actors with names and detailed physical descriptions. You MUST include: age, specific ethnicity, hair color/style, eye color, height/body type, and distinct facial features.
+    3. Create ${characterCount} distinct Costumes with names and visual descriptions.
+    4. Create ${propCount} significant Props (items, weapons, vehicles, or artifacts) with names and visual details.
+    5. Create ${sceneCount} distinct Scene (Location/Environment) with name and visual description. This should describe the place WITHOUT people.
+    6. Create ${characterCount} distinct Characters (Roles) by combining an Actor and a Costume. Give the Character a distinct Role Name (e.g. "The Hero", "The Villain", "The Detective").
 
     STRICT CONSTRAINTS:
     - Keep descriptions concise (max 40 words).
@@ -151,6 +174,16 @@ export const generateProjectAssets = async (idea: string): Promise<{
       responseSchema: {
         type: Type.OBJECT,
         properties: {
+          treatment: {
+            type: Type.OBJECT,
+            properties: {
+              logline: { type: Type.STRING },
+              synopsis: { type: Type.STRING },
+              characterProfiles: { type: Type.STRING },
+              storyArc: { type: Type.STRING },
+              toneAndStyle: { type: Type.STRING }
+            }
+          },
           actors: {
             type: Type.ARRAY,
             items: {
@@ -207,9 +240,32 @@ export const generateProjectAssets = async (idea: string): Promise<{
     }
   });
 
-  const data = safeJsonParse(response.text || "{}", { actors: [], costumes: [], props: [], scenes: [], characters: [] });
+  const data = safeJsonParse(response.text || "{}", { 
+      treatment: {},
+      actors: [], 
+      costumes: [], 
+      props: [], 
+      scenes: [], 
+      characters: [] 
+  });
   
   const timestamp = Date.now();
+
+  const treatmentObj = data.treatment || {};
+  const treatment = `🎯 Logline:
+${treatmentObj.logline || ''}
+
+📋 Synopsis:
+${treatmentObj.synopsis || ''}
+
+👥 Character Descriptions:
+${treatmentObj.characterProfiles || ''}
+
+🏆 Story Arc:
+${treatmentObj.storyArc || ''}
+
+🎭 Tone and Style:
+${treatmentObj.toneAndStyle || ''}`;
 
   const actors: Actor[] = (data.actors || []).map((a: any, i: number) => ({
     id: `act-${timestamp}-${i}`,
@@ -248,7 +304,7 @@ export const generateProjectAssets = async (idea: string): Promise<{
     };
   }).filter((c: Character) => c.actorId && c.costumeId);
 
-  return { actors, costumes, props, scenes, characters };
+  return { actors, costumes, props, scenes, characters, treatment };
 };
 
 export const generateStoryboard = async (
