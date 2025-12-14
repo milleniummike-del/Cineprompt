@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Character, Actor, Costume } from '../types';
 import CopyButton from './CopyButton';
@@ -115,10 +116,10 @@ const CharacterCard: React.FC<{
       className={`bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 rounded-lg p-3 flex flex-col gap-2 cursor-grab active:cursor-grabbing transition-all shadow-sm group ${showPrompts ? 'ring-1 ring-indigo-500/30' : ''}`}
     >
       <div className="flex items-start gap-3">
-        <ImageUploader id={character.id} className="w-12 h-12" />
+        <ImageUploader id={character.id} className="w-40 aspect-video" />
 
         <div className="flex-grow min-w-0">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-1">
                 <div 
                     className="flex-grow cursor-pointer"
                     onClick={() => setShowPrompts(!showPrompts)}
@@ -127,13 +128,12 @@ const CharacterCard: React.FC<{
                         {character.name}
                         <svg className={`w-3 h-3 text-zinc-600 transition-transform ${showPrompts ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                     </div>
-                    <div className="text-[10px] text-zinc-500 flex flex-wrap items-center gap-1">
-                        <span>{actor?.name || 'Unknown'}</span>
-                        <span>•</span>
-                        <span>{costume?.name || 'No Costume'}</span>
+                    <div className="text-[10px] text-zinc-500 flex flex-col gap-0.5 mt-1">
+                        <span className="truncate">Played by: {actor?.name || 'Unknown'}</span>
+                        <span className="truncate">Costume: {costume?.name || 'No Costume'}</span>
                     </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 mt-1 shrink-0">
                     <CopyButton 
                         onCopy={getCharacterJson} 
                         title="Copy Character JSON with View Prompts" 

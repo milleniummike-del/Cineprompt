@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Shot, Actor, Costume, Character, Prop, Scene, DialogueLine } from '../types';
 import { parseDialogueStringToLines } from '../utils/textUtils';
@@ -149,7 +150,7 @@ export const generateProjectAssets = async (
        - Story Arc: The beginning, middle, and end.
        - Tone and Style: Visual and emotional blueprint.
 
-    2. Create ${actorCount} distinct Actors with names and detailed physical descriptions. You MUST include: age, specific ethnicity, hair color/style, eye color, height/body type, and distinct facial features.
+    2. Create ${actorCount} distinct Actors. IMPORTANT: Their names MUST be simple, generic real-world names (e.g. "John Smith", "Sarah Jones"), NOT story character names. Provide detailed physical descriptions including age, specific ethnicity, hair color/style, eye color, height/body type, and distinct facial features.
     3. Create ${characterCount} distinct Costumes with names and visual descriptions.
     4. Create ${propCount} significant Props (items, weapons, vehicles, or artifacts) with names and visual details.
     5. Create ${sceneCount} distinct Scene (Location/Environment) with name and visual description. This should describe the place WITHOUT people.
@@ -169,7 +170,6 @@ export const generateProjectAssets = async (
     contents: prompt,
     config: {
       temperature: 0.5,
-      maxOutputTokens: 8192,
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
@@ -389,7 +389,6 @@ export const generateStoryboard = async (
     contents: prompt,
     config: {
       temperature: 0.6,
-      maxOutputTokens: 8192,
       // responseMimeType: 'application/json', // Disabled to allow natural JSON generation
       // responseSchema: ... // Disabled
     }
@@ -538,7 +537,6 @@ export const generateSingleShot = async (
     contents: prompt,
     config: {
       temperature: 0.6,
-      maxOutputTokens: 8192,
       // responseMimeType: 'application/json', // Disabled
       // responseSchema: ... // Disabled
     }

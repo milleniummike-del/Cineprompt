@@ -105,12 +105,12 @@ const ShotCard: React.FC<{
         });
     }
 
-    // Include implicit props from dialogue text
+    // Implicit matches
     const dialogText = getDialogueText();
-    
-    const uniqueCharIds = Array.from(charIds);
-    
+    const combinedText = (actionDiv.innerText + " " + sceneDiv.innerText + " " + dialogText).toLowerCase();
+
     // Resolve Characters
+    const uniqueCharIds = Array.from(charIds);
     const resolvedCharacters = uniqueCharIds.map(id => {
         const char = project.characters.find(c => c.id === id);
         if (!char) return null;
@@ -120,14 +120,11 @@ const ShotCard: React.FC<{
     }).filter(Boolean) as { character: any, actor: any, costume: any }[];
 
     // Resolve Props (Explicit + Implicit)
-    const combinedText = (actionDiv.innerText + " " + sceneDiv.innerText + " " + dialogText).toLowerCase();
-    
     const explicitProps = Array.from(propIds).map(id => project.props.find(p => p.id === id)).filter(Boolean);
     const implicitProps = (project.props || []).filter(p => {
         if (propIds.has(p.id)) return false;
         return combinedText.includes(p.name.toLowerCase());
     });
-    // Deduplicate props
     const resolvedProps = Array.from(new Map([...explicitProps, ...implicitProps].map(item => [item?.id, item])).values()).filter(Boolean);
 
     // Resolve Scenes (Explicit + Implicit)
@@ -136,28 +133,39 @@ const ShotCard: React.FC<{
         if (sceneIds.has(s.id)) return false;
         return combinedText.includes(s.name.toLowerCase());
     });
-     // Deduplicate scenes
     const resolvedScenes = Array.from(new Map([...explicitScenes, ...implicitScenes].map(item => [item?.id, item])).values()).filter(Boolean);
 
-
-    // Function to replace tags with plain text names
+    // EXPANDED TAG REPLACEMENT: Replaces tags with FULL visual descriptions
     const replaceTags = (div: HTMLElement) => {
         div.querySelectorAll('.tag-remove').forEach(el => el.remove());
+        
         div.querySelectorAll('[data-char-id]').forEach(tag => {
            const id = tag.getAttribute('data-char-id');
            const char = project.characters.find(c => c.id === id);
-           if (char) tag.replaceWith(char.name);
+           if (char) {
+               const actor = project.actors.find(a => a.id === char.actorId);
+               const costume = project.costumes.find(c => c.id === char.costumeId);
+               const desc = `${char.name} (${actor?.name || 'Unknown'} - ${actor?.description || ''}, wearing ${costume?.name || 'Outfit'} - ${costume?.description || ''})`;
+               tag.replaceWith(desc);
+           }
         });
+        
         div.querySelectorAll('[data-prop-id]').forEach(tag => {
             const id = tag.getAttribute('data-prop-id');
             const prop = project.props.find(p => p.id === id);
-            if (prop) tag.replaceWith(prop.name);
+            if (prop) {
+                tag.replaceWith(`${prop.name} (${prop.description})`);
+            }
          });
+         
         div.querySelectorAll('[data-scene-id]').forEach(tag => {
             const id = tag.getAttribute('data-scene-id');
             const scene = project.scenes.find(s => s.id === id);
-            if (scene) tag.replaceWith(scene.name);
+            if (scene) {
+                tag.replaceWith(`${scene.name} (${scene.description})`);
+            }
          });
+         
          return div.innerText.trim();
     };
 
@@ -175,32 +183,22 @@ const ShotCard: React.FC<{
     const data = getResolvedData();
     let prompt = "";
 
-    // Characters Section
+    // Context Headers
     if (data.characters.length > 0) {
       data.characters.forEach(({ character, actor, costume }) => {
-        prompt += `Name: ${character.name}\n`;
-        prompt += `Description: ${actor?.description || ''} ${costume ? 'wearing ' + costume.description : ''}\n\n`;
+        prompt += `Character Context: ${character.name} is played by ${actor?.name} (${actor?.description}), wearing ${costume?.name} (${costume?.description}).\n`;
       });
+      prompt += '\n';
     }
 
-    // Scenes (Locations) Section
     if (data.scenes.length > 0) {
-        prompt += `Locations:\n`;
         data.scenes.forEach((s: any) => {
-          prompt += `- ${s.name}: ${s.description}\n`;
+          prompt += `Location Context: ${s.name} is ${s.description}\n`;
         });
         prompt += `\n`;
     }
 
-    // Props Section
-    if (data.props.length > 0) {
-      prompt += `Props:\n`;
-      data.props.forEach((p: any) => {
-        prompt += `- ${p.name}: ${p.description}\n`;
-      });
-      prompt += `\n`;
-    }
-
+    // Main Prompt
     prompt += `Scene: ${data.sceneText}\n\n`;
     prompt += `Action: ${data.actionText}\n\n`;
 
@@ -224,9 +222,6 @@ const ShotCard: React.FC<{
           title: shot.title,
           scene: data.sceneText,
           action: data.actionText,
-          // Re-structure dialog for JSON if needed, or keep text block. 
-          // Current request implies detailed struct might be nice, but simple text or obj works.
-          // Let's output structured lines here.
           dialog: shot.dialogueLines ? shot.dialogueLines.map(line => {
              const char = project.characters.find(c => c.id === line.characterId);
              return {
@@ -234,7 +229,7 @@ const ShotCard: React.FC<{
                  text: line.text
              }
           }) : [],
-          dialogueText: data.dialogText, // Legacy support
+          dialogueText: data.dialogText, 
           characters: data.characters.map(c => ({
               role: c.character.name,
               actor: c.actor?.name,

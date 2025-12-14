@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Actor } from '../types';
 import CopyButton from './CopyButton';
@@ -18,9 +19,11 @@ const ActorCard: React.FC<{
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col gap-3 group hover:border-zinc-700 transition-all">
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3">
         {/* Image Section */}
-        <ImageUploader id={actor.id} />
+        <div className="w-full">
+            <ImageUploader id={actor.id} className="w-full aspect-video" />
+        </div>
         
         {/* Inputs */}
         <div className="flex-grow space-y-2 min-w-0">

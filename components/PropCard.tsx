@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Prop } from '../types';
 import CopyButton from './CopyButton';
@@ -33,12 +34,14 @@ const PropCard: React.FC<{
       className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col gap-3 group hover:border-emerald-500/50 hover:shadow-lg transition-all cursor-grab active:cursor-grabbing relative"
     >
       {/* Visual Drag Handle Hint */}
-      <div className="absolute top-2 right-2 text-zinc-700 group-hover:text-zinc-500">
+      <div className="absolute top-2 right-2 text-zinc-700 group-hover:text-zinc-500 z-10">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
       </div>
 
-      <div className="flex gap-3">
-        <ImageUploader id={prop.id} />
+      <div className="flex flex-col gap-3">
+        <div className="w-full">
+            <ImageUploader id={prop.id} className="w-full aspect-video" />
+        </div>
 
         <div className="flex-grow space-y-2 min-w-0">
           <div className="flex justify-between items-start pr-6">

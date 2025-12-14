@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Costume } from '../types';
 import CopyButton from './CopyButton';
@@ -18,8 +19,10 @@ const CostumeCard: React.FC<{
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col gap-3 group hover:border-zinc-700 transition-all">
-      <div className="flex gap-3">
-        <ImageUploader id={costume.id} />
+      <div className="flex flex-col gap-3">
+        <div className="w-full">
+            <ImageUploader id={costume.id} className="w-full aspect-video" />
+        </div>
         
         <div className="flex-grow space-y-2 min-w-0">
           <div className="flex justify-between items-start">
