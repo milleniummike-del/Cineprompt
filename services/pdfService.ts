@@ -154,32 +154,31 @@ export const generatePDF = async (project: StoryboardProject) => {
   cursorY += 5;
 
   for (const actor of project.actors) {
-      checkPageBreak(IMG_HEIGHT + 40); // Check if image + text block fits
-      
       let imgData = null;
       try {
           const blob = await getImageFromDB(actor.id);
           if (blob) imgData = await blobToBase64(blob);
       } catch (e) {}
 
-      // Image centered
-      const imgX = MARGIN + (CONTENT_WIDTH - IMG_WIDTH) / 2;
+      // Calculate text height needed
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      const descLines = doc.splitTextToSize(actor.description, CONTENT_WIDTH);
+      const textBlockHeight = 25 + (descLines.length * 5); // Name + Desc + Padding
+      
+      const totalBlockHeight = imgData ? (IMG_HEIGHT + 5 + textBlockHeight) : textBlockHeight;
+
+      checkPageBreak(totalBlockHeight);
 
       if (imgData) {
+          const imgX = MARGIN + (CONTENT_WIDTH - IMG_WIDTH) / 2;
           try {
-              // 16:9 Double Size
               doc.addImage(imgData, "JPEG", imgX, cursorY, IMG_WIDTH, IMG_HEIGHT, undefined, 'FAST');
+              cursorY += IMG_HEIGHT + 5;
           } catch(e) {}
-      } else {
-          doc.setDrawColor(200, 200, 200);
-          doc.rect(imgX, cursorY, IMG_WIDTH, IMG_HEIGHT);
-          doc.setFontSize(8);
-          doc.setTextColor(150, 150, 150);
-          doc.text("No Img", imgX + (IMG_WIDTH/2) - 5, cursorY + (IMG_HEIGHT/2));
       }
-      cursorY += IMG_HEIGHT + 5;
 
-      // Text below image
+      // Text below image (or just text if no image)
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
@@ -188,11 +187,10 @@ export const generatePDF = async (project: StoryboardProject) => {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.setTextColor(60, 60, 60);
-      const descLines = doc.splitTextToSize(actor.description, CONTENT_WIDTH);
       doc.text(descLines as any, MARGIN, cursorY + 12);
       doc.setTextColor(0, 0, 0);
 
-      cursorY += (descLines.length * 5) + 25;
+      cursorY += (descLines.length * 5) + 20;
   }
 
   doc.addPage();
@@ -203,8 +201,6 @@ export const generatePDF = async (project: StoryboardProject) => {
   cursorY += 5;
 
   for (const char of project.characters) {
-      checkPageBreak(IMG_HEIGHT + 50);
-      
       const actor = project.actors.find(a => a.id === char.actorId);
       const costume = project.costumes.find(c => c.id === char.costumeId);
       
@@ -214,19 +210,32 @@ export const generatePDF = async (project: StoryboardProject) => {
           if (blob) imgData = await blobToBase64(blob);
       } catch (e) { console.error(e); }
 
-      const imgX = MARGIN + (CONTENT_WIDTH - IMG_WIDTH) / 2;
+      // Calculate Text Height
+      let textBlockHeight = 35; 
+      let descLines: string[] = [];
+      
+      if (actor || costume) {
+          const desc = `${actor?.description || ''} wearing ${costume?.description || ''}`.trim();
+          if (desc) {
+              doc.setFont("helvetica", "normal");
+              doc.setFontSize(9);
+              descLines = doc.splitTextToSize(desc, CONTENT_WIDTH);
+              textBlockHeight += (descLines.length * 4);
+          }
+      }
+
+      const totalBlockHeight = imgData ? (IMG_HEIGHT + 5 + textBlockHeight) : textBlockHeight;
+      checkPageBreak(totalBlockHeight);
       
       if (imgData) {
+          const imgX = MARGIN + (CONTENT_WIDTH - IMG_WIDTH) / 2;
           try {
               doc.addImage(imgData, "JPEG", imgX, cursorY, IMG_WIDTH, IMG_HEIGHT, undefined, 'FAST');
+              cursorY += IMG_HEIGHT + 5;
           } catch (e) {
-              doc.rect(imgX, cursorY, IMG_WIDTH, IMG_HEIGHT);
+              // Fail silently
           }
-      } else {
-          doc.setDrawColor(200, 200, 200);
-          doc.rect(imgX, cursorY, IMG_WIDTH, IMG_HEIGHT);
       }
-      cursorY += IMG_HEIGHT + 5;
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
@@ -243,20 +252,16 @@ export const generatePDF = async (project: StoryboardProject) => {
       doc.text(infoLines as any, MARGIN, cursorY);
       cursorY += 15;
 
-      if (actor || costume) {
-          const desc = `${actor?.description || ''} wearing ${costume?.description || ''}`.trim();
-          if (desc) {
-              const descLines = doc.splitTextToSize(desc, CONTENT_WIDTH);
-              doc.setTextColor(80, 80, 80);
-              doc.setFontSize(9);
-              doc.text(descLines as any, MARGIN, cursorY);
-              doc.setTextColor(0, 0, 0);
-              doc.setFontSize(10);
-              cursorY += (descLines.length * 4);
-          }
+      if (descLines.length > 0) {
+          doc.setTextColor(80, 80, 80);
+          doc.setFontSize(9);
+          doc.text(descLines as any, MARGIN, cursorY);
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(10);
+          cursorY += (descLines.length * 4);
       }
 
-      cursorY += 20;
+      cursorY += 15;
   }
 
   doc.addPage();
@@ -267,38 +272,82 @@ export const generatePDF = async (project: StoryboardProject) => {
   cursorY += 5;
 
   for (const scene of project.scenes) {
-      checkPageBreak(IMG_HEIGHT + 40);
-      
       let imgData = null;
       try {
           const blob = await getImageFromDB(scene.id);
           if (blob) imgData = await blobToBase64(blob);
       } catch (e) {}
 
-      const imgX = MARGIN + (CONTENT_WIDTH - IMG_WIDTH) / 2;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      const descLines = doc.splitTextToSize(scene.description, CONTENT_WIDTH);
+      const textBlockHeight = 25 + (descLines.length * 4);
+
+      const totalBlockHeight = imgData ? (IMG_HEIGHT + 5 + textBlockHeight) : textBlockHeight;
+      checkPageBreak(totalBlockHeight);
 
       if (imgData) {
+          const imgX = MARGIN + (CONTENT_WIDTH - IMG_WIDTH) / 2;
           try {
               doc.addImage(imgData, "JPEG", imgX, cursorY, IMG_WIDTH, IMG_HEIGHT, undefined, 'FAST');
+              cursorY += IMG_HEIGHT + 5;
           } catch(e) {}
-      } else {
-          doc.setDrawColor(200, 200, 200);
-          doc.rect(imgX, cursorY, IMG_WIDTH, IMG_HEIGHT);
       }
-      cursorY += IMG_HEIGHT + 5;
 
       doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
       doc.text(scene.name, MARGIN, cursorY + 5);
       
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(60, 60, 60);
-      const descLines = doc.splitTextToSize(scene.description, CONTENT_WIDTH);
       doc.text(descLines as any, MARGIN, cursorY + 12);
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(10);
 
-      cursorY += (descLines.length * 4) + 25;
+      cursorY += (descLines.length * 4) + 20;
+  }
+
+  // --- Costumes Section ---
+  checkPageBreak(80);
+  addHeader("Wardrobe & Costumes", 18);
+  cursorY += 5;
+
+  for (const costume of project.costumes) {
+      let imgData = null;
+      try {
+          const blob = await getImageFromDB(costume.id);
+          if (blob) imgData = await blobToBase64(blob);
+      } catch (e) {}
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      const descLines = doc.splitTextToSize(costume.description, CONTENT_WIDTH);
+      const textBlockHeight = 25 + (descLines.length * 4);
+
+      const totalBlockHeight = imgData ? (IMG_HEIGHT + 5 + textBlockHeight) : textBlockHeight;
+      checkPageBreak(totalBlockHeight);
+
+      if (imgData) {
+          const imgX = MARGIN + (CONTENT_WIDTH - IMG_WIDTH) / 2;
+          try {
+              doc.addImage(imgData, "JPEG", imgX, cursorY, IMG_WIDTH, IMG_HEIGHT, undefined, 'FAST');
+              cursorY += IMG_HEIGHT + 5;
+          } catch(e) {}
+      }
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text(costume.name, MARGIN, cursorY + 5);
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(60, 60, 60);
+      doc.text(descLines as any, MARGIN, cursorY + 12);
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+
+      cursorY += (descLines.length * 4) + 20;
   }
 
   // --- Props Section ---
@@ -307,25 +356,27 @@ export const generatePDF = async (project: StoryboardProject) => {
   cursorY += 5;
 
   for (const prop of project.props) {
-      checkPageBreak(IMG_HEIGHT + 40);
-      
       let imgData = null;
       try {
           const blob = await getImageFromDB(prop.id);
           if (blob) imgData = await blobToBase64(blob);
       } catch (e) {}
 
-      const imgX = MARGIN + (CONTENT_WIDTH - IMG_WIDTH) / 2;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      const descLines = doc.splitTextToSize(prop.description, CONTENT_WIDTH);
+      const textBlockHeight = 25 + (descLines.length * 4);
+      
+      const totalBlockHeight = imgData ? (IMG_HEIGHT + 5 + textBlockHeight) : textBlockHeight;
+      checkPageBreak(totalBlockHeight);
 
       if (imgData) {
+          const imgX = MARGIN + (CONTENT_WIDTH - IMG_WIDTH) / 2;
           try {
              doc.addImage(imgData, "JPEG", imgX, cursorY, IMG_WIDTH, IMG_HEIGHT, undefined, 'FAST');
+             cursorY += IMG_HEIGHT + 5;
           } catch(e) {}
-      } else {
-          doc.setDrawColor(220, 220, 220);
-          doc.rect(imgX, cursorY, IMG_WIDTH, IMG_HEIGHT);
       }
-      cursorY += IMG_HEIGHT + 5;
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
@@ -334,12 +385,11 @@ export const generatePDF = async (project: StoryboardProject) => {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(60, 60, 60);
-      const descLines = doc.splitTextToSize(prop.description, CONTENT_WIDTH);
       doc.text(descLines as any, MARGIN, cursorY + 12);
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(10);
       
-      cursorY += (descLines.length * 4) + 25;
+      cursorY += (descLines.length * 4) + 20;
   }
 
 

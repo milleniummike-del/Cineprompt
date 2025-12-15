@@ -313,7 +313,8 @@ export const generateStoryboard = async (
   costumes: Costume[],
   characters: Character[],
   props: Prop[] = [],
-  scenes: Scene[] = []
+  scenes: Scene[] = [],
+  shotCount: number = 6
 ): Promise<Shot[]> => {
   const ai = getAiClient();
   
@@ -351,7 +352,7 @@ export const generateStoryboard = async (
 
   const prompt = `
     Act as a professional cinematographer and director. 
-    Break down the following movie idea into a sequence of exactly 1 distinct storyboard shot.
+    Break down the following movie idea into a sequence of exactly ${shotCount} distinct storyboard shots.
     ${context}
 
     IMPORTANT: When describing characters in "actionPrompt", YOU MUST use the exact Role Names provided in the "DEFINED ROLES" list (e.g. "${characters.map(c => c.name).join('", "')}"). Do not use the Actor names directly.

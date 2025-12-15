@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { generateStoryboard, generateProjectAssets, generateSingleShot } from './services/geminiService';
 import { Shot, StoryboardProject, Actor, Costume, Character, Prop, Scene } from './types';
@@ -53,7 +54,8 @@ export default function App() {
     actors: 5,
     characters: 5,
     scenes: 5,
-    props: 5
+    props: 5,
+    shots: 6
   });
   const [showSettings, setShowSettings] = useState(false);
   const [showTreatment, setShowTreatment] = useState(false);
@@ -248,7 +250,15 @@ export default function App() {
       });
       
       // Step 2: Generate Storyboard using those assets
-      const generatedShots = await generateStoryboard(generationContext, assets.actors, assets.costumes, assets.characters, assets.props, assets.scenes);
+      const generatedShots = await generateStoryboard(
+          generationContext, 
+          assets.actors, 
+          assets.costumes, 
+          assets.characters, 
+          assets.props, 
+          assets.scenes,
+          assetCounts.shots // Pass the desired shot count
+      );
       
       // Step 3: Auto-tag the text
       const taggedShots = generatedShots.map(shot => ({
@@ -533,12 +543,13 @@ export default function App() {
                </button>
                
                {showSettings && (
-                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-black/20 p-4 rounded-lg animate-in slide-in-from-top-2">
+                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-black/20 p-4 rounded-lg animate-in slide-in-from-top-2">
                    {[
                      { label: 'Actors', key: 'actors' },
                      { label: 'Characters', key: 'characters' },
                      { label: 'Scenes', key: 'scenes' },
                      { label: 'Props', key: 'props' },
+                     { label: 'Shots', key: 'shots' },
                    ].map(({ label, key }) => (
                      <div key={key}>
                        <label className="text-[10px] uppercase font-bold text-zinc-500 block mb-1.5">{label}</label>
