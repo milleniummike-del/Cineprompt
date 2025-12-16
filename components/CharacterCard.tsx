@@ -51,9 +51,9 @@ const CharacterCard: React.FC<{
   const baseDescription = `${actorDesc} wearing ${costumeDesc}`.trim();
 
   const prompts = {
-      Front: `Full body frontal shot of ${baseDescription}, neutral lighting, solid background, character sheet style`,
-      Side: `Side profile full body shot of ${baseDescription}, neutral lighting, solid background, character sheet style`,
-      Rear: `Rear view full body shot of ${baseDescription}, neutral lighting, solid background, character sheet style`
+      Front: `Full body frontal shot of ${baseDescription}, neutral lighting, solid background`,
+      Side: `Side profile full body shot of ${baseDescription}, neutral lighting, solid background`,
+      Rear: `Rear view full body shot of ${baseDescription}, neutral lighting, solid background`
   };
 
   const getCharacterJson = () => {

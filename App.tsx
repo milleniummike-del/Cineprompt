@@ -4,6 +4,7 @@ import { generateStoryboard, generateProjectAssets, generateSingleShot } from '.
 import { Shot, StoryboardProject, Actor, Costume, Character, Prop, Scene } from './types';
 import { autoTagText, parseDialogueStringToLines } from './utils/textUtils';
 import { generatePDF } from './services/pdfService';
+import { exportProjectAsZip, importProjectFromZip } from './services/zipService';
 
 // Components
 import ActorManager from './components/ActorManager';
@@ -170,14 +171,13 @@ export default function App() {
     localStorage.setItem('cineprompt_saves', JSON.stringify(newSavedList));
   };
 
-  const handleExportProject = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(project, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `${(project.title || 'project').replace(/\s+/g, '_').toLowerCase()}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+  const handleExportProject = async () => {
+    try {
+        await exportProjectAsZip(project);
+    } catch (e) {
+        console.error("Export Failed", e);
+        alert("Failed to export project ZIP.");
+    }
   };
   
   const handlePublish = async () => {
@@ -196,33 +196,40 @@ export default function App() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileObj = event.target.files && event.target.files[0];
     if (!fileObj) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result;
-      if (typeof content === 'string') {
-        try {
-          const importedProject = JSON.parse(content);
-          if (importedProject.shots && Array.isArray(importedProject.shots)) {
-             const migrated = migrateProjectData(importedProject);
-             setProject({
-                ...migrated,
-                id: migrated.id || `proj-${Date.now()}`,
-             });
-             setIdea(migrated.originalIdea || '');
-          } else {
-            alert("Invalid project file format.");
-          }
-        } catch (err) {
-          console.error(err);
-          alert("Failed to parse project file.");
-        }
+    try {
+      let importedProject: any = null;
+
+      if (fileObj.name.endsWith('.zip')) {
+         importedProject = await importProjectFromZip(fileObj);
+      } else {
+         // Fallback legacy JSON import
+         const text = await fileObj.text();
+         importedProject = JSON.parse(text);
       }
-    };
-    reader.readAsText(fileObj);
+
+      if (importedProject && importedProject.shots && Array.isArray(importedProject.shots)) {
+          const migrated = migrateProjectData(importedProject);
+          setProject({
+            ...migrated,
+            id: migrated.id || `proj-${Date.now()}`,
+          });
+          setIdea(migrated.originalIdea || '');
+          
+          if (migrated.treatment && migrated.treatment.length > 20) {
+            setShowTreatment(true);
+          }
+      } else {
+        alert("Invalid project file format.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to parse project file. Ensure it is a valid JSON or ZIP exported from CinePrompt.");
+    }
+
     event.target.value = ''; // Reset
   };
 
@@ -420,7 +427,7 @@ export default function App() {
                ref={fileInputRef}
                onChange={handleFileChange}
                className="hidden"
-               accept=".json"
+               accept=".json,.zip"
              />
              
              {/* Import/Export Group */}
@@ -428,7 +435,7 @@ export default function App() {
                <button 
                  onClick={handleImportClick}
                  className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded transition-colors"
-                 title="Import JSON Project"
+                 title="Import JSON/ZIP Project"
                >
                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                </button>
@@ -436,7 +443,7 @@ export default function App() {
                <button 
                  onClick={handleExportProject}
                  className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded transition-colors"
-                 title="Export JSON Project"
+                 title="Export Project ZIP (Includes Images)"
                >
                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                </button>

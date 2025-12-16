@@ -7,6 +7,7 @@ import CopyButton from './CopyButton';
 import RichPromptEditor from './RichPromptEditor';
 import CameraControlPalette from './CameraControlPalette';
 import ShotDialogueEditor from './ShotDialogueEditor';
+import ImageUploader from './ImageUploader';
 
 const ShotCard: React.FC<{
   shot: Shot;
@@ -304,6 +305,12 @@ const ShotCard: React.FC<{
       {isExpanded && (
         <div className="p-6 space-y-6 animate-in slide-in-from-top-2 duration-200">
           
+          {/* Shot Image Reference */}
+          <div>
+             <label className="text-xs uppercase font-bold text-zinc-500 block mb-2">Shot Reference Image</label>
+             <ImageUploader id={shot.id} className="w-full max-w-sm aspect-video bg-zinc-900 rounded-lg border border-zinc-800" />
+          </div>
+
           {/* 1. Initial Scene */}
           <div>
             <div className="flex justify-between items-center mb-1">

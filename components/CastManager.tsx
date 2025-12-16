@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Actor, Costume, Character } from '../types';
 import CharacterCard from './CharacterCard';
@@ -57,9 +58,9 @@ const CastManager: React.FC<{
             costumeName: costume?.name,
             description: baseDescription,
             prompts: {
-                frontal: `Full body frontal shot of ${baseDescription}, neutral lighting, solid background, character sheet style`,
-                side: `Side profile full body shot of ${baseDescription}, neutral lighting, solid background, character sheet style`,
-                rear: `Rear view full body shot of ${baseDescription}, neutral lighting, solid background, character sheet style`
+                frontal: `Full body frontal shot of ${baseDescription}, neutral lighting, solid background`,
+                side: `Side profile full body shot of ${baseDescription}, neutral lighting, solid background`,
+                rear: `Rear view full body shot of ${baseDescription}, neutral lighting, solid background`
             }
         };
     });

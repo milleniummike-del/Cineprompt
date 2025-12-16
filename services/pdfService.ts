@@ -400,9 +400,56 @@ export const generatePDF = async (project: StoryboardProject) => {
   addHeader("Storyboard Sequence", 18);
   cursorY += 5;
 
-  project.shots.forEach((shot, index) => {
-      checkPageBreak(60);
+  // Need to iterate with a for...of loop to handle async await for images properly
+  for (const [index, shot] of project.shots.entries()) {
+      let imgData = null;
+      try {
+          const blob = await getImageFromDB(shot.id);
+          if (blob) imgData = await blobToBase64(blob);
+      } catch (e) {}
       
+      // Calculate heights
+      // 1. Header height
+      const headerHeight = 15;
+      
+      // 2. Content Height estimation
+      // We simulate the text split to know height
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      const colWidth = (CONTENT_WIDTH / 2) - 5;
+      
+      const sceneText = "SCENE: " + expandTags(autoTagText(shot.initialScenePrompt || "", project.characters, project.props, project.scenes), project);
+      const actionText = "ACTION: " + expandTags(autoTagText(shot.actionPrompt || "", project.characters, project.props, project.scenes), project);
+      
+      const sceneLines = doc.splitTextToSize(sceneText, colWidth);
+      const actionLines = doc.splitTextToSize(actionText, colWidth);
+      const leftColHeight = (sceneLines.length * 4) + (actionLines.length * 4) + 20; // + padding
+
+      // Right col height calculation
+      let rightColHeight = 10; // Header
+      if (shot.dialogueLines && shot.dialogueLines.length > 0) {
+          shot.dialogueLines.forEach(l => {
+             const char = project.characters.find(c => c.id === l.characterId);
+             const line = `${char ? char.name : 'Unknown'}: "${l.text}"`;
+             const dLines = doc.splitTextToSize(line, colWidth);
+             rightColHeight += (dLines.length * 4);
+          });
+      } else if (shot.dialog) {
+          const dLines = doc.splitTextToSize(shot.dialog, colWidth);
+          rightColHeight += (dLines.length * 4);
+      }
+      if (shot.cameraInstructions.length > 0) {
+          rightColHeight += (shot.cameraInstructions.length * 4);
+      }
+      rightColHeight += 10;
+
+      const contentHeight = Math.max(leftColHeight, rightColHeight);
+      
+      const imageHeight = imgData ? (IMG_HEIGHT + 5) : 0;
+      const totalBlockHeight = headerHeight + imageHeight + contentHeight + 10; // + separator
+
+      checkPageBreak(totalBlockHeight);
+
       // Shot Header
       doc.setFillColor(240, 240, 240);
       doc.rect(MARGIN, cursorY, CONTENT_WIDTH, 8, 'F');
@@ -410,6 +457,15 @@ export const generatePDF = async (project: StoryboardProject) => {
       doc.setFontSize(10);
       doc.text(`#${index + 1}  ${shot.title || 'Untitled Shot'}`, MARGIN + 2, cursorY + 5.5);
       cursorY += 12;
+
+      // Image (if exists)
+      if (imgData) {
+          const imgX = MARGIN + (CONTENT_WIDTH - IMG_WIDTH) / 2;
+          try {
+             doc.addImage(imgData, "JPEG", imgX, cursorY, IMG_WIDTH, IMG_HEIGHT, undefined, 'FAST');
+             cursorY += IMG_HEIGHT + 5;
+          } catch(e) {}
+      }
       
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
@@ -417,7 +473,6 @@ export const generatePDF = async (project: StoryboardProject) => {
       // Content Columns
       const leftColX = MARGIN;
       const rightColX = MARGIN + (CONTENT_WIDTH / 2) + 5;
-      const colWidth = (CONTENT_WIDTH / 2) - 5;
       
       const startY = cursorY;
 
@@ -427,15 +482,9 @@ export const generatePDF = async (project: StoryboardProject) => {
       cursorY += 4;
       doc.setFont("helvetica", "normal");
 
-      // Auto-tag text first to capture untagged/implicit scenes, then expand them
-      const sceneText = "SCENE: " + expandTags(autoTagText(shot.initialScenePrompt || "", project.characters, project.props, project.scenes), project);
-      const actionText = "ACTION: " + expandTags(autoTagText(shot.actionPrompt || "", project.characters, project.props, project.scenes), project);
-      
-      const sceneLines: string[] = doc.splitTextToSize(sceneText, colWidth);
       doc.text(sceneLines as any, leftColX, cursorY);
       cursorY += (sceneLines.length * 4) + 2;
 
-      const actionLines: string[] = doc.splitTextToSize(actionText, colWidth);
       doc.text(actionLines as any, leftColX, cursorY);
       cursorY += (actionLines.length * 4) + 4;
       
@@ -481,7 +530,7 @@ export const generatePDF = async (project: StoryboardProject) => {
       // Separator
       doc.setDrawColor(220, 220, 220);
       doc.line(MARGIN, cursorY - 5, PAGE_WIDTH - MARGIN, cursorY - 5);
-  });
+  }
 
   doc.save(`${project.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`);
 };
